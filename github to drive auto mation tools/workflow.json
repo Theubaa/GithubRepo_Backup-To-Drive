@@ -1,0 +1,116 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "id": "c6204c41-860e-436f-b258-360e2c65a452",
+      "json": {
+        "startNode": true
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "resource": "repository",
+        "limit": 50,
+        "options": {}
+      },
+      "name": "GitHub (List Repos)",
+      "type": "n8n-nodes-base.gitHub",
+      "typeVersion": 1,
+      "id": "c5f59c25-f71f-4952-b883-7521e4912df0",
+      "credentials": {
+        "gitHubOAuth2Api": {
+          "id": "YOUR_GITHUB_CREDENTIAL_ID",
+          "name": "GitHub OAuth2"
+        }
+      },
+      "json": {}
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "id": "27b7c53d-2490-482a-a82f-2d3b246a362a",
+      "json": {}
+    },
+    {
+      "parameters": {
+        "operation": "getArchive",
+        "resource": "repository",
+        "id": "={{$json.id}}",
+        "options": {
+          "format": "zipball"
+        }
+      },
+      "name": "GitHub (Get Archive)",
+      "type": "n8n-nodes-base.gitHub",
+      "typeVersion": 1,
+      "id": "e44d3204-7043-4f9e-a89e-26f505315582",
+      "credentials": {
+        "gitHubOAuth2Api": {
+          "id": "YOUR_GITHUB_CREDENTIAL_ID",
+          "name": "GitHub OAuth2"
+        }
+      },
+      "json": {}
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "resource": "storage",
+        "bucketName": "your-github-repos-bucket",
+        "fileName": "={{$json.name}}-{{DateTime.now().toFormat('yyyyMMdd_HHmmss')}}.zip",
+        "data": "={{$node[\"GitHub (Get Archive)\"].binary.data}}",
+        "options": {}
+      },
+      "name": "Supabase (Upload)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "id": "f51c8e17-21a4-46c5-924b-325d7b561b36",
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase API"
+        }
+      },
+      "json": {}
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          "GitHub (List Repos)"
+        ]
+      ]
+    },
+    "GitHub (List Repos)": {
+      "main": [
+        [
+          "Split In Batches"
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          "GitHub (Get Archive)"
+        ]
+      ]
+    },
+    "GitHub (Get Archive)": {
+      "main": [
+        [
+          "Supabase (Upload)"
+        ]
+      ]
+    }
+  }
+}
